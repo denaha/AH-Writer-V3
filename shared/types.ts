@@ -3,6 +3,7 @@ export interface TextGenerationRequest {
   textInfo?: string;
   templateId?: number;
   customRules?: string;
+  textType?: TextType;
   settings: {
     length: number; // 1-5 scale
     languageLevel: 'A1-A2' | 'B1-B2' | 'C1-C2';
@@ -13,6 +14,14 @@ export interface TextGenerationRequest {
     name: string;
     type: string;
     content: string;
+  };
+  photoSource?: {
+    dataUrl: string;
+  };
+  autoLookupInfo?: {
+    title?: string;
+    author?: string;
+    year?: string;
   };
 }
 
@@ -40,3 +49,11 @@ export interface TemplateDetails {
 }
 
 export type LanguageLevel = 'A1-A2' | 'B1-B2' | 'C1-C2';
+
+export type TextType = 
+  | 'Inhaltsangabe' 
+  | 'Charakterisierung' 
+  | 'Literarische Analyse' 
+  | 'Gedichtanalyse' 
+  | 'Sachtextanalyse' 
+  | 'Erörterung';

@@ -26,7 +26,7 @@
     --muted: 223 13% 20%;
     --muted-foreground: 217.9 10.6% 64.9%;
     
-    --accent: 146 70% 45%;
+    --accent: 188 100% 36%;
     --accent-foreground: 210 40% 98%;
     
     --destructive: 0 84.2% 60.2%;
@@ -51,7 +51,7 @@
   }
   
   .perplexity-gradient {
-    background: linear-gradient(90deg, rgba(0,255,163,1) 0%, rgba(6,255,169,1) 100%);
+    background: linear-gradient(90deg, rgba(0,165,186,1) 0%, rgba(0,175,186,1) 100%);
   }
   
   .perplexity-container {

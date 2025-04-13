@@ -2,26 +2,26 @@ import OpenAI from "openai";
 import { TextGenerationRequest, TextGenerationResponse } from "@shared/types";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "sk-dummy-key-for-development" });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
- * Generate a text summary based on the German input text and selected template
+ * Generate a text summary based on the German input text and custom rules
  */
 export async function generateTextSummary(
   request: TextGenerationRequest
 ): Promise<TextGenerationResponse> {
   try {
-    const { text, textInfo, templateId, settings } = request;
+    const { text, textInfo, settings, customRules } = request;
     
     // Build detailed prompt based on request parameters
-    const prompt = buildGermanTextAnalysisPrompt(text, textInfo, templateId, settings);
+    const prompt = buildTextAnalysisPrompt(text, textInfo, settings, customRules);
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "Du bist ein deutschsprachiger Assistent, der auf die Analyse und Zusammenfassung deutscher Texte nach akademischen Standards spezialisiert ist. Du erstellst Inhaltsangaben, die den deutschen schulischen Anforderungen entsprechen."
+          content: "Du bist ein deutschsprachiger Assistent, der auf die Analyse und Zusammenfassung deutscher Texte spezialisiert ist. Beachte genau die vom Benutzer vorgegebenen Regeln für die Analyse."
         },
         {
           role: "user",
@@ -30,6 +30,7 @@ export async function generateTextSummary(
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
+      max_tokens: 4000
     });
 
     // Parse response as JSON
@@ -48,20 +49,20 @@ export async function generateTextSummary(
 }
 
 /**
- * Builds the prompt for German text analysis based on the template and settings
+ * Builds the prompt for German text analysis based on settings and custom rules
  */
-function buildGermanTextAnalysisPrompt(
+function buildTextAnalysisPrompt(
   text: string, 
-  textInfo: string | undefined, 
-  templateId: number,
-  settings: TextGenerationRequest["settings"]
+  textInfo: string | undefined,
+  settings: TextGenerationRequest["settings"],
+  customRules: string | undefined
 ): string {
   const lengthGuidance = {
-    1: "sehr kurz und kompakt",
-    2: "kurz",
-    3: "mittlerer Länge",
-    4: "ausführlich",
-    5: "sehr detailliert"
+    1: "sehr kurz und kompakt (ca. 150 Wörter)",
+    2: "kurz (ca. 250 Wörter)",
+    3: "mittlerer Länge (ca. 350 Wörter)",
+    4: "ausführlich (ca. 450 Wörter)",
+    5: "sehr detailliert (ca. 550+ Wörter)"
   }[settings.length];
 
   const languageLevelGuidance = {
@@ -70,27 +71,6 @@ function buildGermanTextAnalysisPrompt(
     "C1-C2": "anspruchsvolles Sprachniveau, komplexe Satzstrukturen, präziser Wortschatz"
   }[settings.languageLevel];
 
-  let templateGuidance = "";
-  switch (templateId) {
-    case 1: // Standard Inhaltsangabe
-      templateGuidance = "Erstelle eine Standard-Inhaltsangabe mit Einleitung (Basisinformationen), Hauptteil (chronologische Zusammenfassung) und Schluss (Kernaussage/Intention). Verwende das Präsens als Zeitform.";
-      break;
-    case 2: // Literarische Analyse
-      templateGuidance = "Erstelle eine literarische Analyse, die Erzählperspektive, Charaktere, Stil und Themen des Textes beleuchtet.";
-      break;
-    case 3: // Charakterisierung
-      templateGuidance = "Erstelle eine Charakterisierung der Hauptfigur(en), die äußere Merkmale, Verhaltensweisen, Beziehungen zu anderen Figuren und Entwicklung im Verlauf der Handlung beschreibt.";
-      break;
-    case 4: // Gedichtanalyse
-      templateGuidance = "Erstelle eine Gedichtanalyse, die Form, Sprache, Reimschema, lyrisches Ich und Interpretation des Gedichts umfasst.";
-      break;
-    case 5: // Sachtextanalyse
-      templateGuidance = "Erstelle eine Sachtextanalyse, die Textsorte, Struktur, Argumentation, sprachliche Mittel und Intention des Autors analysiert.";
-      break;
-    default:
-      templateGuidance = "Erstelle eine Standard-Inhaltsangabe mit Einleitung (Basisinformationen), Hauptteil (chronologische Zusammenfassung) und Schluss (Kernaussage/Intention). Verwende das Präsens als Zeitform.";
-  }
-
   // Add text info if provided
   const textInfoSection = textInfo 
     ? `Textinformationen: ${textInfo}\n\n` 
@@ -98,11 +78,16 @@ function buildGermanTextAnalysisPrompt(
   
   // Additional requirements
   const analysisRequest = settings.includeAnalysis 
-    ? "Bitte füge eine detaillierte Textanalyse hinzu, die Einleitung, Hauptteil, Schluss und Sprachstil bewertet." 
+    ? "Füge eine detaillierte Textanalyse hinzu, die Einleitung, Hauptteil, Schluss und Sprachstil bewertet." 
     : "";
   
   const stylisticRequest = settings.includeStylistic 
-    ? "Bitte identifiziere und erkläre stilistische Mittel im Text mit konkreten Beispielen." 
+    ? "Identifiziere und erkläre stilistische Mittel im Text mit konkreten Beispielen." 
+    : "";
+
+  // Custom rules section
+  const customRulesSection = customRules
+    ? `\nBENUTZERDEFINIERTE REGELN:\n${customRules}\n`
     : "";
 
   return `
@@ -111,9 +96,8 @@ Analysiere und fasse den folgenden deutschen Text zusammen:
 ${textInfoSection}
 TEXT:
 ${text}
-
+${customRulesSection}
 ANFORDERUNGEN:
-- ${templateGuidance}
 - Die Zusammenfassung soll ${lengthGuidance} sein.
 - Verwende ein ${languageLevelGuidance}.
 - ${analysisRequest}

@@ -209,9 +209,22 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   const startCamera = async () => {
     if (videoRef.current && navigator.mediaDevices) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoRef.current.srcObject = stream;
-        setCameraActive(true);
+        console.log("Starte Kamera...");
+        const constraints = {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "environment"
+          }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            if (videoRef.current) videoRef.current.play();
+            console.log("Video stream geladen");
+          };
+        }
       } catch (err) {
         console.error("Fehler beim Zugriff auf die Kamera:", err);
         toast({
@@ -219,6 +232,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
           description: "Zugriff auf die Kamera nicht möglich.",
           variant: "destructive",
         });
+        setCameraActive(false);
       }
     }
   };
@@ -285,6 +299,26 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
     }, 1500);
   };
 
+  // Process the photo after it's captured
+  const processPhoto = (dataUrl: string) => {
+    // This would use OCR to extract text in a real implementation
+    toast({
+      title: "Verarbeite Foto",
+      description: "Das Foto wird verarbeitet...",
+    });
+    
+    // For demonstration purposes, we'll use a simulated response
+    console.log("Foto wird verarbeitet:", dataUrl.substring(0, 50) + "...");
+    
+    setTimeout(() => {
+      setOriginalText("Text erkannt aus dem Foto: Dies ist ein Beispieltext, der aus dem Foto extrahiert wurde. In einer vollständigen Implementierung würde hier der tatsächlich erkannte Text stehen.");
+      toast({
+        title: "Fertig",
+        description: "Der Text wurde aus dem Foto extrahiert.",
+      });
+    }, 2000);
+  };
+  
   // Effects
   useEffect(() => {
     // Cleanup when component unmounts
@@ -294,6 +328,13 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       }
     };
   }, [cameraActive]);
+  
+  // Process photo when photoSource changes
+  useEffect(() => {
+    if (photoSource) {
+      processPhoto(photoSource);
+    }
+  }, [photoSource]);
 
   useEffect(() => {
     if (cameraActive) {
@@ -357,39 +398,37 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         </DialogContent>
       </Dialog>
       
-      {/* Camera overlay */}
-      {cameraActive && (
-        <Dialog open={cameraActive} onOpenChange={setCameraActive}>
-          <DialogContent className="bg-card border-muted max-w-screen-sm">
-            <DialogHeader>
-              <DialogTitle>Foto aufnehmen</DialogTitle>
-              <DialogDescription>
-                Halte den Text gerade und gut beleuchtet für optimale Ergebnisse.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="relative overflow-hidden rounded-lg bg-black aspect-video">
-              <video 
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                autoPlay
-                playsInline
-              />
-              <canvas ref={canvasRef} className="hidden" />
-            </div>
-            
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setCameraActive(false)}>
-                Abbrechen
-              </Button>
-              <Button className="bg-primary text-primary-foreground" onClick={capturePhoto}>
-                <Camera className="h-4 w-4 mr-2" />
-                Foto aufnehmen
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Camera Dialog */}
+      <Dialog open={cameraActive} onOpenChange={setCameraActive}> 
+        <DialogContent className="bg-card border-muted max-w-screen-sm">
+          <DialogHeader>
+            <DialogTitle>Foto aufnehmen</DialogTitle>
+            <DialogDescription>
+              Halte den Text gerade und gut beleuchtet für optimale Ergebnisse.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="relative overflow-hidden rounded-lg bg-black aspect-video">
+            <video 
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              autoPlay
+              playsInline
+            />
+            <canvas ref={canvasRef} className="hidden" />
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCameraActive(false)}>
+              Abbrechen
+            </Button>
+            <Button className="bg-primary text-primary-foreground" onClick={capturePhoto}>
+              <Camera className="h-4 w-4 mr-2" />
+              Foto aufnehmen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Logo and Header Section */}
       <div className="flex items-center mb-8">
@@ -429,8 +468,8 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                 </Select>
               </div>
 
-              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                <div className="flex space-x-2">
+              <div className="flex flex-col gap-4 items-start">
+                <div className="flex flex-wrap gap-2 w-full">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -439,7 +478,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                     disabled={isUploading}
                   >
                     {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                    Datei hochladen
+                    Datei
                   </Button>
                   
                   <Button 
@@ -449,7 +488,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                     onClick={() => setIsAutoLookupModalOpen(true)}
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Text suchen
+                    Suchen
                   </Button>
                   
                   <Button 
@@ -472,7 +511,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                 />
                 
                 <Input 
-                  className="w-full md:w-auto flex-grow bg-background border-input"
+                  className="w-full bg-background border-input"
                   placeholder="Optionale Informationen (Autor, Titel, Jahr, etc.)"
                   value={textInfo}
                   onChange={(e) => setTextInfo(e.target.value)}

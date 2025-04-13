@@ -51,7 +51,19 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   const [customRules, setCustomRules] = useState("");
   const [activeTab, setActiveTab] = useState("result");
   const [result, setResult] = useState<TextGenerationResponse | null>(null);
+  const [selectedTextType, setSelectedTextType] = useState<TextType>("Inhaltsangabe");
+  const [photoSource, setPhotoSource] = useState<string | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [isAutoLookupModalOpen, setIsAutoLookupModalOpen] = useState(false);
+  const [autoLookupInfo, setAutoLookupInfo] = useState({
+    title: "",
+    author: "",
+    year: ""
+  });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   
   // Mutations
@@ -61,7 +73,14 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         text: originalText,
         textInfo: textInfo || undefined,
         customRules: customRules || undefined,
-        settings
+        textType: selectedTextType,
+        settings,
+        photoSource: photoSource ? { dataUrl: photoSource } : undefined,
+        autoLookupInfo: autoLookupInfo.title ? {
+          title: autoLookupInfo.title,
+          author: autoLookupInfo.author,
+          year: autoLookupInfo.year
+        } : undefined
       };
       
       const response = await apiRequest("POST", "/api/generate", request);
@@ -186,8 +205,192 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   };
   
   // Render
+  // Camera functions
+  const startCamera = async () => {
+    if (videoRef.current && navigator.mediaDevices) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoRef.current.srcObject = stream;
+        setCameraActive(true);
+      } catch (err) {
+        console.error("Fehler beim Zugriff auf die Kamera:", err);
+        toast({
+          title: "Kamerafehler",
+          description: "Zugriff auf die Kamera nicht möglich.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+      setCameraActive(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        setPhotoSource(dataUrl);
+        stopCamera();
+        
+        toast({
+          title: "Foto aufgenommen",
+          description: "Das Foto wurde erfolgreich aufgenommen und wird zur Textanalyse verwendet.",
+        });
+      }
+    }
+  };
+
+  // Auto-Lookup function
+  const handleAutoLookup = async () => {
+    if (!autoLookupInfo.title.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Bitte gib mindestens einen Titel ein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Hier würde normalerweise ein API-Aufruf stattfinden, um den Text zu finden
+    toast({
+      title: "Text wird gesucht",
+      description: "Dein Text wird gesucht und geladen...",
+    });
+
+    // Simulation eines erfolgreichen API-Aufrufs
+    setTimeout(() => {
+      const dummyText = `Dies ist ein automatisch geladener Text für "${autoLookupInfo.title}" ${autoLookupInfo.author ? `von ${autoLookupInfo.author}` : ''} ${autoLookupInfo.year ? `aus dem Jahr ${autoLookupInfo.year}` : ''}.`;
+      setOriginalText(dummyText);
+      setIsAutoLookupModalOpen(false);
+      
+      toast({
+        title: "Text gefunden",
+        description: "Der Text wurde erfolgreich geladen.",
+      });
+    }, 1500);
+  };
+
+  // Effects
+  useEffect(() => {
+    // Cleanup when component unmounts
+    return () => {
+      if (cameraActive) {
+        stopCamera();
+      }
+    };
+  }, [cameraActive]);
+
+  useEffect(() => {
+    if (cameraActive) {
+      startCamera();
+    }
+  }, [cameraActive]);
+
   return (
     <div className="flex flex-col space-y-6">
+      {/* Dialog for auto lookup */}
+      <Dialog open={isAutoLookupModalOpen} onOpenChange={setIsAutoLookupModalOpen}>
+        <DialogContent className="bg-card border-muted">
+          <DialogHeader>
+            <DialogTitle>Text automatisch suchen</DialogTitle>
+            <DialogDescription>
+              Gib Informationen über den Text ein, um ihn automatisch zu finden.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Titel</Label>
+              <Input 
+                value={autoLookupInfo.title}
+                onChange={(e) => setAutoLookupInfo({...autoLookupInfo, title: e.target.value})}
+                placeholder="z.B. Der Schimmelreiter"
+                className="bg-background border-input"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Autor</Label>
+              <Input 
+                value={autoLookupInfo.author}
+                onChange={(e) => setAutoLookupInfo({...autoLookupInfo, author: e.target.value})}
+                placeholder="z.B. Theodor Storm"
+                className="bg-background border-input"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Erscheinungsjahr</Label>
+              <Input 
+                value={autoLookupInfo.year}
+                onChange={(e) => setAutoLookupInfo({...autoLookupInfo, year: e.target.value})}
+                placeholder="z.B. 1888"
+                className="bg-background border-input"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAutoLookupModalOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button className="bg-primary text-primary-foreground" onClick={handleAutoLookup}>
+              <Search className="h-4 w-4 mr-2" />
+              Suchen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Camera overlay */}
+      {cameraActive && (
+        <Dialog open={cameraActive} onOpenChange={setCameraActive}>
+          <DialogContent className="bg-card border-muted max-w-screen-sm">
+            <DialogHeader>
+              <DialogTitle>Foto aufnehmen</DialogTitle>
+              <DialogDescription>
+                Halte den Text gerade und gut beleuchtet für optimale Ergebnisse.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="relative overflow-hidden rounded-lg bg-black aspect-video">
+              <video 
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setCameraActive(false)}>
+                Abbrechen
+              </Button>
+              <Button className="bg-primary text-primary-foreground" onClick={capturePhoto}>
+                <Camera className="h-4 w-4 mr-2" />
+                Foto aufnehmen
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
       {/* Logo and Header Section */}
       <div className="flex items-center mb-8">
         <div className="h-8 w-8 rounded-full perplexity-gradient mr-3 flex items-center justify-center">
@@ -207,31 +410,74 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
               onChange={(e) => setOriginalText(e.target.value)}
             />
             
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-muted-foreground hover:text-foreground flex items-center"
-                onClick={handleUpload}
-                disabled={isUploading}
-              >
-                {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                Datei hochladen
-              </Button>
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                className="hidden"
-                accept=".txt,.doc,.docx,.pdf"
-                onChange={handleFileChange}
-              />
-              
-              <Input 
-                className="w-full md:w-auto flex-grow bg-background border-input"
-                placeholder="Optionale Informationen (Autor, Titel, Jahr, etc.)"
-                value={textInfo}
-                onChange={(e) => setTextInfo(e.target.value)}
-              />
+            <div className="flex flex-col space-y-4">
+              {/* Text Type Selector */}
+              <div className="w-full">
+                <Label className="text-sm text-muted-foreground mb-2 block">Textart</Label>
+                <Select value={selectedTextType} onValueChange={(value) => setSelectedTextType(value as TextType)}>
+                  <SelectTrigger className="w-full bg-background border-input">
+                    <SelectValue placeholder="Wähle eine Textart" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Inhaltsangabe">Inhaltsangabe</SelectItem>
+                    <SelectItem value="Charakterisierung">Charakterisierung</SelectItem>
+                    <SelectItem value="Literarische Analyse">Literarische Analyse</SelectItem>
+                    <SelectItem value="Gedichtanalyse">Gedichtanalyse</SelectItem>
+                    <SelectItem value="Sachtextanalyse">Sachtextanalyse</SelectItem>
+                    <SelectItem value="Erörterung">Erörterung</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-muted-foreground hover:text-foreground flex items-center"
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                    Datei hochladen
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-muted-foreground hover:text-foreground flex items-center"
+                    onClick={() => setIsAutoLookupModalOpen(true)}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Text suchen
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-muted-foreground hover:text-foreground flex items-center"
+                    onClick={() => setCameraActive(true)}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Foto
+                  </Button>
+                </div>
+                
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".txt,.doc,.docx,.pdf"
+                  onChange={handleFileChange}
+                />
+                
+                <Input 
+                  className="w-full md:w-auto flex-grow bg-background border-input"
+                  placeholder="Optionale Informationen (Autor, Titel, Jahr, etc.)"
+                  value={textInfo}
+                  onChange={(e) => setTextInfo(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardContent>

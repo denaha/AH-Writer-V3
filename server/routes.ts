@@ -95,13 +95,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate the summary using OpenAI
       const response = await generateTextSummary(request);
       
-      // Create a record in the database
+      // Create a record in the database (optional)
       const now = new Date();
       const summary = await storage.createSummary({
         originalText: request.text,
         summary: response.summary,
         analysis: response.analysis || null,
-        templateId: request.templateId,
+        templateId: request.templateId || 1, // Default template ID if not specified
         createdAt: now.toISOString()
       });
       
@@ -120,6 +120,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(500).json({ 
         message: "Fehler bei der Textgenerierung. Bitte versuche es später erneut." 
+      });
+    }
+  });
+  
+  // Route for handling file uploads
+  app.post("/api/upload", async (req, res) => {
+    try {
+      const file = req.body.file;
+      
+      if (!file || !file.content) {
+        return res.status(400).json({ message: "Eine Datei ist erforderlich." });
+      }
+      
+      // Return success with the file content
+      res.json({ 
+        success: true,
+        fileName: file.name,
+        fileType: file.type,
+        text: file.content
+      });
+    } catch (error) {
+      console.error("Error handling file upload:", error);
+      res.status(500).json({ 
+        message: "Fehler beim Hochladen der Datei. Bitte versuche es später erneut." 
       });
     }
   });

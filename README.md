@@ -1,5 +1,5 @@
 
-# GermanAI Writer
+# AH AI Writer
 
 A web application that helps users write better German text analyses, summaries, and literary interpretations.
 

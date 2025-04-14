@@ -269,7 +269,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
     }
   };
 
-  // Auto-Lookup function
+  // Auto-Lookup function - echte API-Anfrage an OpenAI
   const handleAutoLookup = async () => {
     if (!autoLookupInfo.title.trim()) {
       toast({
@@ -280,36 +280,55 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       return;
     }
 
-    // Hier würde normalerweise ein API-Aufruf stattfinden, um den Text zu finden
+    // Zeige Lade-Toast an
     toast({
       title: "Text wird gesucht",
-      description: "Dein Text wird gesucht und geladen...",
+      description: "Der Text wird über KI gesucht und geladen...",
     });
 
-    // Simulation eines erfolgreichen API-Aufrufs
-    setTimeout(() => {
-      // Realistische Demo-Texte für verschiedene bekannte Werke
-      let loadedText = "";
+    try {
+      // API-Aufruf zur Textsuche
+      const response = await fetch('/api/search-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: autoLookupInfo.title,
+          author: autoLookupInfo.author,
+          year: autoLookupInfo.year
+        }),
+      });
       
-      if (autoLookupInfo.title.toLowerCase().includes("das brot")) {
-        loadedText = `Das Brot\n\nSie hörte, wie er leise und vorsichtig durchs Zimmer ging. Er sah nicht vom Teller auf. Er hatte noch immer sein weißes Gesicht. Aber er hielt den Kopf gebückt. Er sah nicht, daß sie abends heimlich nach dem Brot sah. Sie konnte es erst nach dem dritten Abend sagen. Sie sagte: Ich kann dieses Brot nicht mehr essen. Sie sagte: Ich weiß auch, warum du nachts immer rausgehst. Ich höre doch, wie du die Küchenschrank-Tür aufreißt. Du ißt doch nachts heimlich Brot. Das mußte er zugeben. Er schämte sich. Nach dem nächsten Nacht - sie hatte wieder in der Küche gesessen - gab sie ihm Brot. Nachts um halb drei. Er nahm es und aß. Vor ihr. Und zum erstenmal seit vielen Jahren hatten sie nachts eine halbe Stunde lang das Licht an. Zusammen.`;
-      } else if (autoLookupInfo.title.toLowerCase().includes("schimmelreiter") || autoLookupInfo.author.toLowerCase().includes("storm")) {
-        loadedText = `Der Schimmelreiter von Theodor Storm\n\nWas ich zu berichten beabsichtige, ist mir vor reichlich einem halben Jahrhundert im Hause meiner Urgroßmutter, der alten Frau Senator Feddersen, kundgeworden, während ich, an ihrem Lehnstuhl sitzend, mich mit dem Lesen eines in blaue Pappe eingebundenen Zeitschriftenheftes beschäftigte; ich finde jetzt selbst, daß es besser sei, sie in ihrem Grabe zu lassen und auch mit schweigen ob jener spukhaften Erscheinung jenes grauenhaften Reiters und seines Schimmels, den sie in unheimlich stürmischen Nächten am Deich dahinreiten gesehen.\n\nHauke Haien war der Sohn eines Landvermessers, eines sogenannten 'Kooginspektors'; und der alte Tede Haien hatte seinen Jungen wenig von ihm erzählt. Aus einem Schulzimmer drängte sich alles ungestüm der Tür zu; mein Gefährte packte mich an und zog mich fort: 'Komm, da bringen sie einen Ertrunkenen; er ist über Jeverssand gefahren; der Schimmel hat ihn abgeworfen; Schimmel und Karriol sind auch ertrunken!'`;
-      } else if (autoLookupInfo.title.toLowerCase().includes("faust") || autoLookupInfo.author.toLowerCase().includes("goethe")) {
-        loadedText = `Faust: Der Tragödie erster Teil von Johann Wolfgang von Goethe\n\nHabe nun, ach! Philosophie,\nJuristerei und Medizin,\nUnd leider auch Theologie\nDurchaus studiert, mit heißem Bemühn.\nDa steh ich nun, ich armer Tor!\nUnd bin so klug als wie zuvor;\nHeiße Magister, heiße Doktor gar\nUnd ziehe schon an die zehen Jahr\nHerauf, herab und quer und krumm\nMeine Schüler an der Nase herum –\nUnd sehe, daß wir nichts wissen können!\nDas will mir schier das Herz verbrennen.\nZwar bin ich gescheiter als all die Laffen,\nDoktoren, Magister, Schreiber und Pfaffen;\nMich plagen keine Skrupel noch Zweifel,\nFürchte mich weder vor Hölle noch Teufel –\nDafür ist mir auch alle Freud entrissen,\nBilde mir nicht ein, was Rechts zu wissen,\nBilde mir nicht ein, ich könnte was lehren,\nDie Menschen zu bessern und zu bekehren.`;
-      } else {
-        // Generischer Text für alle anderen Anfragen
-        loadedText = `${autoLookupInfo.title}${autoLookupInfo.author ? ` von ${autoLookupInfo.author}` : ''}${autoLookupInfo.year ? ` (${autoLookupInfo.year})` : ''}\n\nHier wäre normalerweise der vollständige Text dieses Werkes zu finden. In einer vollständigen Implementierung würde hier der tatsächlich aus einer Datenbank oder API abgerufene Text erscheinen, basierend auf den von Ihnen eingegebenen Suchkriterien.\n\nIn diesem Beispiel simulieren wir eine erfolgreiche Textsuche. In einer fertigen Anwendung würden Sie an dieser Stelle den vollständigen Originaltext sehen, inklusive sämtlicher Absätze, Kapitel und Formatierungen des Originals.`;
+      if (!response.ok) {
+        throw new Error('Fehler bei der Textsuche');
       }
       
-      setOriginalText(loadedText);
-      setIsAutoLookupModalOpen(false);
+      const data = await response.json();
       
+      if (data.success && data.text) {
+        setOriginalText(data.text);
+        setIsAutoLookupModalOpen(false);
+        
+        toast({
+          title: "Text gefunden",
+          description: "Der Text wurde erfolgreich geladen.",
+        });
+      } else {
+        toast({
+          title: "Fehler",
+          description: "Der Text konnte nicht gefunden werden.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Fehler bei der Textsuche:", error);
       toast({
-        title: "Text gefunden",
-        description: "Der Text wurde erfolgreich geladen.",
+        title: "Fehler",
+        description: "Es gab ein Problem bei der Textsuche. Bitte versuche es später noch einmal.",
+        variant: "destructive",
       });
-    }, 1500);
+    }
   };
 
   // Process the photo after it's captured
@@ -452,11 +471,11 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       </div>
       
       {/* Main Input Card */}
-      <Card className="border-muted bg-card shadow-none">
+      <Card className="border-muted bg-card shadow-none animate-fade-in">
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4">
             <Textarea 
-              className="w-full h-64 resize-none text-md bg-background border-input focus:ring-primary p-4 rounded-lg"
+              className="w-full h-64 resize-none text-md bg-background border-input focus:ring-primary p-4 rounded-lg transition-smooth hover-scale"
               placeholder="Füge hier deinen deutschen Text ein oder lade eine Datei hoch..."
               value={originalText}
               onChange={(e) => setOriginalText(e.target.value)}
@@ -537,7 +556,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       
       {/* Analysis Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-muted bg-card shadow-none">
+        <Card className="border-muted bg-card shadow-none animate-fade-in animation-delay-100">
           <CardContent className="p-6">
             <h3 className="text-sm font-medium text-foreground mb-4">Analyseeinstellungen</h3>
             <div className="space-y-6">
@@ -605,11 +624,11 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         </Card>
         
         {/* Custom Rules */}
-        <Card className="border-muted bg-card shadow-none">
+        <Card className="border-muted bg-card shadow-none animate-fade-in animation-delay-200">
           <CardContent className="p-6">
             <h3 className="text-sm font-medium text-foreground mb-4">Eigene Regeln</h3>
             <Textarea 
-              className="w-full h-[218px] resize-none text-sm bg-background border-input rounded-lg"
+              className="w-full h-[218px] resize-none text-sm bg-background border-input rounded-lg transition-smooth hover-scale"
               placeholder="Definiere hier eigene Regeln für die Textanalyse (z.B. spezifische Aspekte, auf die geachtet werden soll, besondere Formatierungswünsche, etc.)"
               value={customRules}
               onChange={(e) => setCustomRules(e.target.value)}
@@ -619,9 +638,9 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       </div>
       
       {/* Generate Button */}
-      <div className="flex justify-center my-4">
+      <div className="flex justify-center my-4 animate-fade-in animation-delay-300">
         <Button 
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium flex items-center gap-2 py-6 px-8"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium flex items-center gap-2 py-6 px-8 transition-transform hover:scale-105 active:scale-95"
           onClick={handleSubmit}
           disabled={isPending || !originalText.trim()}
           size="lg"
@@ -636,7 +655,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       
       {/* Results Section */}
       {result && (
-        <Card className="border-muted bg-card shadow-none mt-4">
+        <Card className="border-muted bg-card shadow-none mt-4 animate-slide-up">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-medium text-foreground">Ergebnis</h3>

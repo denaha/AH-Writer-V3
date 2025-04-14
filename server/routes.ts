@@ -147,6 +147,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Route for searching texts by title, author, and year
+  app.post("/api/search-text", async (req, res) => {
+    try {
+      const { title, author, year } = req.body;
+      
+      if (!title || title.trim() === '') {
+        return res.status(400).json({ message: "Ein Titel ist erforderlich." });
+      }
+      
+      // Search for the text using OpenAI
+      const text = await searchText(title, author, year);
+      
+      // Return the found text
+      res.json({ 
+        success: true,
+        text
+      });
+    } catch (error) {
+      console.error("Error searching for text:", error);
+      res.status(500).json({ 
+        message: "Fehler bei der Textsuche. Bitte versuche es später erneut." 
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

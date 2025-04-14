@@ -32,9 +32,10 @@ export async function searchText(title: string, author?: string, year?: string):
     });
 
     return response.choices[0].message.content || `Es konnte kein Text für "${searchTerm}" gefunden werden.`;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Fehler bei der Textsuche:", error);
-    throw new Error(`Fehler bei der Suche nach dem Text: ${error.message}`);
+    const errorMessage = error?.message || "Unbekannter Fehler";
+    throw new Error(`Fehler bei der Suche nach dem Text: ${errorMessage}`);
   }
 }
 
@@ -76,7 +77,7 @@ export async function generateTextSummary(
       stylisticDevices: result.stylisticDevices,
       suggestions: result.suggestions
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating summary:", error);
     throw new Error("Fehler bei der Textgenerierung. Bitte versuche es später erneut.");
   }

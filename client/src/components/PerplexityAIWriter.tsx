@@ -160,6 +160,15 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   // Handlers
   const handleUpload = () => {
     if (fileInputRef.current) {
+      // Auf mobilen Geräten die Kamera/Fotomediathek für die Dateiauswahl öffnen
+      if (isMobileDevice) {
+        // Auf mobilen Geräten "accept" auf "image/*" setzen, um Kamera/Fotogalerie zu öffnen
+        fileInputRef.current.setAttribute("accept", "image/*");
+        fileInputRef.current.setAttribute("capture", "environment"); // Optional: Direkt die Kamera öffnen
+      } else {
+        // Auf Desktop normale Dateiauswahl
+        fileInputRef.current.setAttribute("accept", ".txt,.doc,.docx,.pdf");
+      }
       fileInputRef.current.click();
     }
   };
@@ -167,7 +176,17 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Prüfen, ob die Datei ein Foto ist (auf mobilen Geräten)
+      const isPhoto = file.type.startsWith('image/');
+      
       uploadFile(file);
+      
+      // Setze die Textinfo entsprechend
+      if (isPhoto) {
+        setTextInfo(`Datei: ${file.name} (Foto von Mobilgerät)`);
+      } else {
+        setTextInfo(`Datei: ${file.name}`);
+      }
     }
   };
   
@@ -646,7 +665,6 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                   type="file" 
                   ref={fileInputRef}
                   className="hidden"
-                  accept=".txt,.doc,.docx,.pdf"
                   onChange={handleFileChange}
                 />
                 
@@ -666,7 +684,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-muted bg-card shadow-none animate-fade-in animation-delay-100">
           <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-foreground mb-4">Analyseeinstellungen</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Analyseeinstellungen</h3>
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -734,7 +752,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         {/* Custom Rules */}
         <Card className="border-muted bg-card shadow-none animate-fade-in animation-delay-200">
           <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-foreground mb-4">Eigene Regeln</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Eigene Regeln</h3>
             <Textarea 
               className="w-full h-[218px] resize-none text-sm bg-background border-input rounded-lg transition-smooth hover-scale"
               placeholder="Definiere hier eigene Regeln für die Textanalyse (z.B. spezifische Aspekte, auf die geachtet werden soll, besondere Formatierungswünsche, etc.)"
@@ -766,7 +784,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         <Card className="border-muted bg-card shadow-none mt-4 animate-slide-up">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-medium text-foreground">Ergebnis</h3>
+              <h3 className="text-lg font-semibold text-foreground">Ergebnis</h3>
               <div className="flex space-x-2">
                 <Button 
                   variant="outline" 
@@ -795,7 +813,13 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                   value="result" 
                   className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
                 >
-                  Zusammenfassung
+                  {selectedTextType === "Inhaltsangabe" ? "Zusammenfassung" : 
+                   selectedTextType === "Charakterisierung" ? "Charakterisierung" :
+                   selectedTextType === "Literarische Analyse" ? "Analyse" :
+                   selectedTextType === "Gedichtanalyse" ? "Gedichtanalyse" :
+                   selectedTextType === "Sachtextanalyse" ? "Sachtextanalyse" :
+                   selectedTextType === "Erörterung" ? "Erörterung" : 
+                   "Zusammenfassung"}
                 </TabsTrigger>
                 
                 {settings.includeAnalysis && result.analysis && (
@@ -816,14 +840,12 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                   </TabsTrigger>
                 )}
                 
-                {result.suggestions && result.suggestions.length > 0 && (
-                  <TabsTrigger 
-                    value="suggestions" 
-                    className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
-                  >
-                    Vorschläge
-                  </TabsTrigger>
-                )}
+                <TabsTrigger 
+                  value="sources" 
+                  className="py-2 px-4 data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none bg-transparent"
+                >
+                  Quellen
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="result" className="mt-0">
@@ -880,8 +902,47 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                 </TabsContent>
               )}
               
+              <TabsContent value="sources" className="mt-0">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-primary mb-2">Verwendete Quellen und Einstellungen</h4>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <h5 className="font-medium">Textart:</h5>
+                      <p className="text-foreground">{selectedTextType}</p>
+                    </div>
+
+                    <div>
+                      <h5 className="font-medium">Textquelle:</h5>
+                      <p className="text-foreground">
+                        {photoSource ? "Foto-Erfassung" : 
+                         textInfo && textInfo.includes("Datei:") ? "Hochgeladene Datei" :
+                         autoLookupInfo.title ? `Automatische Textsuche: "${autoLookupInfo.title}"${autoLookupInfo.author ? ` von ${autoLookupInfo.author}` : ""}${autoLookupInfo.year ? ` (${autoLookupInfo.year})` : ""}` : 
+                         "Manuell eingegebener Text"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h5 className="font-medium">Analyseeinstellungen:</h5>
+                      <ul className="list-disc list-inside pl-2 space-y-1">
+                        <li>Umfang: {settings.length}/5</li>
+                        <li>Sprachniveau: {settings.languageLevel}</li>
+                        <li>Detaillierte Analyse: {settings.includeAnalysis ? "Ja" : "Nein"}</li>
+                        <li>Analyse stilistischer Mittel: {settings.includeStylistic ? "Ja" : "Nein"}</li>
+                      </ul>
+                    </div>
+
+                    {customRules && (
+                      <div>
+                        <h5 className="font-medium">Benutzerdefinierte Regeln:</h5>
+                        <p className="text-foreground whitespace-pre-line border border-border rounded-md p-2 bg-muted/20">{customRules}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+              
               {result.suggestions && result.suggestions.length > 0 && (
-                <TabsContent value="suggestions" className="mt-0">
+                <TabsContent value="suggestions" className="mt-0 hidden">
                   <ul className="list-disc list-inside text-sm text-foreground space-y-2">
                     {result.suggestions.map((suggestion, index) => (
                       <li key={index}>{suggestion}</li>

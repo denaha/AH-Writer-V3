@@ -207,17 +207,40 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   // Render
   // Camera functions
   const startCamera = async () => {
-    if (videoRef.current && navigator.mediaDevices) {
+    if (videoRef.current) {
       try {
         console.log("Starte Kamera...");
+        
+        // Prüfen, ob die MediaDevices-API verfügbar ist
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Dein Browser unterstützt die Kamerafunktion nicht");
+        }
+        
+        // Auf mobilen Geräten explizit nach Berechtigungen fragen
+        try {
+          // Prüfen, ob die Permissions API unterstützt wird
+          if (navigator.permissions && navigator.permissions.query) {
+            const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+            
+            if (permissionStatus.state === 'denied') {
+              throw new Error("Kamera-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Einstellungen deines Browsers/Geräts.");
+            }
+          }
+        } catch (permErr) {
+          console.log("Permissions API nicht verfügbar oder Fehler:", permErr);
+          // Wir fahren trotzdem fort, da getUserMedia auch nach Berechtigungen fragt
+        }
+        
         const constraints = {
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: "environment"
+            facingMode: "environment" // Rückkamera für Mobile verwenden
           }
         };
+        
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
@@ -229,7 +252,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         console.error("Fehler beim Zugriff auf die Kamera:", err);
         toast({
           title: "Kamerafehler",
-          description: "Zugriff auf die Kamera nicht möglich.",
+          description: err instanceof Error ? err.message : "Zugriff auf die Kamera nicht möglich. Bitte erlaube den Zugriff in den Einstellungen deines Browsers/Geräts.",
           variant: "destructive",
         });
         setCameraActive(false);

@@ -17,18 +17,23 @@ export async function searchText(title: string, author?: string, year?: string):
       messages: [
         {
           role: "system",
-          content: `Du bist ein Literaturexperte mit Schwerpunkt auf deutsche Literatur. Deine Aufgabe ist es, vollständige Texte oder repräsentative Auszüge aus literarischen Werken zu liefern, wenn danach gefragt wird.
-          Für kurze Werke oder Gedichte, liefere den kompletten Text. Für längere Werke, gib einen repräsentativen Auszug (1-2 Abschnitte) sowie eine kurze Einführung.
-          Wenn es sich um ein bekanntes literarisches Werk handelt, stelle sicher, dass du den tatsächlichen Originaltext zurückgibst, nicht eine Zusammenfassung oder Paraphrase.
-          Wenn du den exakten Text nicht kennst, gib eine klare Erläuterung und biete stattdessen einen ähnlichen, repräsentativen Text an.`
+          content: `Du bist ein Literaturexperte mit Schwerpunkt auf deutsche Literatur. Deine Aufgabe ist es, AUSSCHLIESSLICH den vollständigen literarischen Text zu liefern, ohne jegliche zusätzliche Kommentare, Einleitungen oder Erklärungen.
+          
+          WICHTIG:
+          - Gib NUR den Text selbst zurück, ohne Kommentare oder eigene Hinzufügungen
+          - Wenn möglich, liefere den vollständigen Text und nicht nur Auszüge
+          - Liefere NIEMALS eine Zusammenfassung oder Paraphrase statt des Originaltextes
+          - Füge KEINE Einleitung, Erklärung oder Schlussworte hinzu
+          - Formatiere den Text so, wie er im Original erscheint (mit Absätzen, etc.)
+          - Verwende KEINE Markdown-Formatierung oder Ähnliches`
         },
         {
           role: "user",
-          content: `Liefere den Text oder einen repräsentativen Auszug von: ${searchTerm}`
+          content: `Liefere den vollständigen Text von: ${searchTerm} - WICHTIG: Gib NUR den Text selbst zurück ohne eigene Kommentare oder Erklärungen. Keine Einleitung, keine Zusammenfassung.`
         }
       ],
-      temperature: 0.3,
-      max_tokens: 2000
+      temperature: 0.1,
+      max_tokens: 4000
     });
 
     return response.choices[0].message.content || `Es konnte kein Text für "${searchTerm}" gefunden werden.`;

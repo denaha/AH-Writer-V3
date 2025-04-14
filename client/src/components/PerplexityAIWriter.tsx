@@ -627,34 +627,16 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
 
               <div className="flex flex-col gap-4 items-start">
                 <div className="flex flex-wrap gap-2 w-full">
-                  {isMobileDevice ? (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-muted-foreground hover:text-foreground flex items-center"
-                        onClick={() => setCameraActive(true)}
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Kamera
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-muted-foreground hover:text-foreground flex items-center"
-                        onClick={handleUpload}
-                        disabled={isUploading}
-                      >
-                        {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-                        Galerie
-                      </Button>
-                    </>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-muted-foreground hover:text-foreground flex items-center"
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-muted-foreground hover:text-foreground flex items-center"
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                    Galerie
+                  </Button>
                       onClick={handleUpload}
                       disabled={isUploading}
                     >

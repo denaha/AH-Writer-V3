@@ -27,7 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TextGenerationRequest, TextGenerationResponse, LanguageLevel, TextType } from "@shared/types";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Upload, Copy, Download, Loader2, SendHorizonal, Camera, BookOpen, Search } from "lucide-react";
+import { FileText, Upload, Copy, Download, Loader2, SendHorizonal, Camera, BookOpen, Search, ImageIcon } from "lucide-react";
 
 interface PerplexityAIWriterProps {
   settings: {
@@ -627,16 +627,41 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
 
               <div className="flex flex-col gap-4 items-start">
                 <div className="flex flex-wrap gap-2 w-full">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-muted-foreground hover:text-foreground flex items-center"
-                    onClick={handleUpload}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                    Datei
-                  </Button>
+                  {isMobileDevice ? (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-muted-foreground hover:text-foreground flex items-center"
+                        onClick={() => setCameraActive(true)}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Kamera
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-muted-foreground hover:text-foreground flex items-center"
+                        onClick={handleUpload}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                        Galerie
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-muted-foreground hover:text-foreground flex items-center"
+                      onClick={handleUpload}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                      Datei
+                    </Button>
+                  )}
                   
                   <Button 
                     variant="outline" 
@@ -647,18 +672,6 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                     <BookOpen className="h-4 w-4 mr-2" />
                     Suchen
                   </Button>
-                  
-                  {isMobileDevice && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-muted-foreground hover:text-foreground flex items-center"
-                      onClick={() => setCameraActive(true)}
-                    >
-                      <Camera className="h-4 w-4 mr-2" />
-                      Foto
-                    </Button>
-                  )}
                 </div>
                 
                 <input 

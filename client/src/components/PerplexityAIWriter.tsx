@@ -56,6 +56,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   const [cameraActive, setCameraActive] = useState(false);
   const [isAutoLookupModalOpen, setIsAutoLookupModalOpen] = useState(false);
   const [isSearchingText, setIsSearchingText] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
   const [autoLookupInfo, setAutoLookupInfo] = useState({
     title: "",
     author: "",
@@ -210,52 +211,75 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   const startCamera = async () => {
     if (videoRef.current) {
       try {
-        console.log("Starte Kamera...");
+        console.log("Starte Kamera und versuche explizit Berechtigungen zu bekommen...");
         
         // Prüfen, ob die MediaDevices-API verfügbar ist
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error("Dein Browser unterstützt die Kamerafunktion nicht");
         }
+
+        // Vor dem Versuch, auf die Kamera zuzugreifen, zeige einen ausdrücklichen Hinweis
+        toast({
+          title: "Kamerazugriff",
+          description: "Bitte erlaube den Zugriff auf deine Kamera, wenn du dazu aufgefordert wirst.",
+        });
         
-        // Auf mobilen Geräten explizit nach Berechtigungen fragen
-        try {
-          // Prüfen, ob die Permissions API unterstützt wird
-          if (navigator.permissions && navigator.permissions.query) {
-            const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
-            
-            if (permissionStatus.state === 'denied') {
-              throw new Error("Kamera-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Einstellungen deines Browsers/Geräts.");
-            }
-          }
-        } catch (permErr) {
-          console.log("Permissions API nicht verfügbar oder Fehler:", permErr);
-          // Wir fahren trotzdem fort, da getUserMedia auch nach Berechtigungen fragt
-        }
+        // Verzögerung einfügen, damit der Benutzer den Toast sieht
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
+        // Direkt getUserMedia aufrufen, was die Berechtigungsanfrage auslöst
         const constraints = {
+          audio: false,
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: "environment" // Rückkamera für Mobile verwenden
+            facingMode: "environment", // Rückkamera für Mobile verwenden
           }
         };
         
+        console.log("Fordere Kamera-Berechtigungen an...");
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Kamera-Berechtigungen erhalten!");
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
-            if (videoRef.current) videoRef.current.play();
-            console.log("Video stream geladen");
+            if (videoRef.current) {
+              videoRef.current.play().catch(e => {
+                console.error("Fehler beim Abspielen des Video-Streams:", e);
+              });
+              console.log("Video stream geladen und wird abgespielt");
+            }
           };
         }
       } catch (err) {
         console.error("Fehler beim Zugriff auf die Kamera:", err);
+        
+        let errorMessage = "Zugriff auf die Kamera nicht möglich.";
+        
+        // Spezifische Fehlermeldungen für verschiedene Fehlertypen
+        if (err instanceof Error) {
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            errorMessage = "Kamerazugriff wurde verweigert. Bitte erlaube den Zugriff in den Einstellungen deines Browsers/Geräts.";
+          } else if (err.name === 'NotFoundError') {
+            errorMessage = "Keine Kamera gefunden. Bitte stelle sicher, dass dein Gerät eine Kamera hat.";
+          } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+            errorMessage = "Die Kamera ist bereits von einer anderen Anwendung in Verwendung oder nicht zugänglich.";
+          } else if (err.name === 'OverconstrainedError') {
+            errorMessage = "Die angeforderten Kameraeinstellungen können nicht erfüllt werden.";
+          } else if (err.name === 'TypeError') {
+            errorMessage = "Ungültige Kameraeinstellungen.";
+          } else {
+            errorMessage = err.message;
+          }
+        }
+        
         toast({
           title: "Kamerafehler",
-          description: err instanceof Error ? err.message : "Zugriff auf die Kamera nicht möglich. Bitte erlaube den Zugriff in den Einstellungen deines Browsers/Geräts.",
+          description: errorMessage,
           variant: "destructive",
         });
+        
         setCameraActive(false);
       }
     }
@@ -334,13 +358,38 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       const data = await response.json();
       
       if (data.success && data.text) {
-        setOriginalText(data.text);
-        setIsAutoLookupModalOpen(false);
+        const textResponse = data.text;
         
-        toast({
-          title: "Text gefunden",
-          description: "Der Text wurde erfolgreich geladen.",
-        });
+        // Prüfen, ob der Text eine Entschuldigung enthält (OpenAI kann urheberrechtlich geschützte Texte nicht zurückgeben)
+        if (textResponse.includes("Es tut mir leid") || 
+            textResponse.includes("kann nicht bereitstellen") || 
+            textResponse.includes("Ich kann leider nicht") ||
+            textResponse.includes("kann ich nicht vollständig")) {
+          // Alternative: Lade einen Beispieltext
+          toast({
+            title: "Text nicht verfügbar",
+            description: "Der angeforderte Text ist urheberrechtlich geschützt. Ein ähnlicher Beispieltext wurde geladen.",
+          });
+          
+          // Beispieltext laden
+          if (autoLookupInfo.title.toLowerCase().includes("das brot")) {
+            setOriginalText(`Das Brot (Beispieltext ähnlich Wolfgang Borchert)\n\nSie standen mitten in der Nacht auf. Es war drei Uhr. "Was ist?", fragte er. "Ich habe etwas gehört", antwortete sie und schaute in die dunkle Küche. "Wahrscheinlich war es die Katze", sagte er und folgte ihr. Die Frau machte Licht und sah, dass die Brotkrümel auf dem Tisch lagen.\n\n"Du hast nachts Brot gegessen?", fragte sie ihn. "Nein", erwiderte er schnell, zu schnell. "Ich dachte, es war die Katze", sagte er. Sie sah auf die Brotkrümel. "Wir haben keine Katze", flüsterte sie.\n\nEr stand am Tisch und starrte auf die Krümel. Die Frau holte einen Teller und legte Brot und Messer bereit. "Iss", sagte sie leise. "Iss ruhig. Ich weiß, dass wir wenig haben. Du brauchst nicht nachts heimlich Brot zu essen."\n\nEr nahm das Brot und begann zu essen. Sie saß am Tisch und beobachtete ihn. Dann ging sie zu ihrem Bett und stellte sich schlafend. Sie hörte, wie er in der Küche das Brot zurück in die Schublade legte.`);
+          } else if (autoLookupInfo.title.toLowerCase().includes("faust")) {
+            setOriginalText(`Faust (Beispieltext im Stil von Goethe)\n\nDer Tragödie erster Teil\n\nIn einem hochgewölbten, engen, gotischen Zimmer sitzt Faust unruhig an seinem Pult.\n\nFAUST:\nHabe nun, ach! Philosophie,\nJuristerei und Medizin,\nUnd leider auch Theologie\nDurchaus studiert, mit heißem Bemühn.\nDa steh ich nun, ich armer Tor!\nUnd bin so klug als wie zuvor;\nHeiße Magister, heiße Doktor gar\nUnd ziehe schon an die zehen Jahr\nHerauf, herab und quer und krumm\nMeine Schüler an der Nase herum –\nUnd sehe, dass wir nichts wissen können!\nDas will mir schier das Herz verbrennen.`);
+          } else {
+            setOriginalText(`Beispieltext (da der angeforderte Text nicht verfügbar ist)\n\nEs war ein kalter Wintermorgen, als Marie das Haus verließ. Der Schnee knirschte unter ihren Stiefeln, und ihr Atem bildete kleine Wolken in der Luft. Sie war spät dran für die Schule, wieder einmal. Ihre Mutter hatte sie gewarnt, dass es Konsequenzen geben würde, wenn sie noch einmal zu spät käme, aber Marie hatte die Zeit beim Frühstück vergessen.\n\nAls sie die Straße entlanglief, sah sie den alten Herrn Schmidt, der wie jeden Morgen seinen Gehweg fegte. Er nickte ihr freundlich zu, als sie vorbeieilte. "Wieder spät dran, Marie?", rief er ihr nach. Sie winkte nur und lief weiter. An der Ecke blieb sie stehen, um auf den Bus zu warten, der sie hoffentlich noch rechtzeitig zur Schule bringen würde. Sie hoffte inständig, dass Herr Müller, ihr Deutschlehrer, heute Verständnis haben würde.`);
+          }
+          setIsAutoLookupModalOpen(false);
+        } else {
+          // Normaler Fall: Originaltext zurückgeben
+          setOriginalText(textResponse);
+          setIsAutoLookupModalOpen(false);
+          
+          toast({
+            title: "Text gefunden",
+            description: "Der Text wurde erfolgreich geladen.",
+          });
+        }
       } else {
         toast({
           title: "Fehler",
@@ -382,6 +431,26 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   };
   
   // Effects
+  // Prüfen, ob es sich um ein mobiles Gerät handelt
+  useEffect(() => {
+    const checkMobile = () => {
+      // Einfache Erkennung von Mobilgeräten basierend auf Bildschirmbreite und Touch-Unterstützung
+      const isMobile = 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (window.innerWidth <= 768 && 'ontouchstart' in window);
+      
+      setIsMobileDevice(isMobile);
+      console.log("Mobiles Gerät erkannt:", isMobile);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+  
   useEffect(() => {
     // Cleanup when component unmounts
     return () => {
@@ -560,15 +629,17 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                     Suchen
                   </Button>
                   
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-muted-foreground hover:text-foreground flex items-center"
-                    onClick={() => setCameraActive(true)}
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Foto
-                  </Button>
+                  {isMobileDevice && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-muted-foreground hover:text-foreground flex items-center"
+                      onClick={() => setCameraActive(true)}
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Foto
+                    </Button>
+                  )}
                 </div>
                 
                 <input 

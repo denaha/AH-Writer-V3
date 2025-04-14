@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateTextSummary } from "./lib/openai";
+import { generateTextSummary, searchText } from "./lib/openai";
 import { insertSummarySchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";

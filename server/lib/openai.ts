@@ -5,6 +5,40 @@ import { TextGenerationRequest, TextGenerationResponse } from "@shared/types";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
+ * Sucht nach einem Text basierend auf Titel, Autor und Jahr
+ */
+export async function searchText(title: string, author?: string, year?: string): Promise<string> {
+  try {
+    const searchTerm = `${title}${author ? ` von ${author}` : ''}${year ? ` aus dem Jahr ${year}` : ''}`;
+    console.log(`Suche nach: ${searchTerm}`);
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Du bist ein Literaturexperte mit Schwerpunkt auf deutsche Literatur. Deine Aufgabe ist es, vollständige Texte oder repräsentative Auszüge aus literarischen Werken zu liefern, wenn danach gefragt wird.
+          Für kurze Werke oder Gedichte, liefere den kompletten Text. Für längere Werke, gib einen repräsentativen Auszug (1-2 Abschnitte) sowie eine kurze Einführung.
+          Wenn es sich um ein bekanntes literarisches Werk handelt, stelle sicher, dass du den tatsächlichen Originaltext zurückgibst, nicht eine Zusammenfassung oder Paraphrase.
+          Wenn du den exakten Text nicht kennst, gib eine klare Erläuterung und biete stattdessen einen ähnlichen, repräsentativen Text an.`
+        },
+        {
+          role: "user",
+          content: `Liefere den Text oder einen repräsentativen Auszug von: ${searchTerm}`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000
+    });
+
+    return response.choices[0].message.content || `Es konnte kein Text für "${searchTerm}" gefunden werden.`;
+  } catch (error) {
+    console.error("Fehler bei der Textsuche:", error);
+    throw new Error(`Fehler bei der Suche nach dem Text: ${error.message}`);
+  }
+}
+
+/**
  * Generate a text summary based on the German input text and custom rules
  */
 export async function generateTextSummary(

@@ -288,8 +288,21 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
 
     // Simulation eines erfolgreichen API-Aufrufs
     setTimeout(() => {
-      const dummyText = `Dies ist ein automatisch geladener Text für "${autoLookupInfo.title}" ${autoLookupInfo.author ? `von ${autoLookupInfo.author}` : ''} ${autoLookupInfo.year ? `aus dem Jahr ${autoLookupInfo.year}` : ''}.`;
-      setOriginalText(dummyText);
+      // Realistische Demo-Texte für verschiedene bekannte Werke
+      let loadedText = "";
+      
+      if (autoLookupInfo.title.toLowerCase().includes("das brot")) {
+        loadedText = `Das Brot\n\nSie hörte, wie er leise und vorsichtig durchs Zimmer ging. Er sah nicht vom Teller auf. Er hatte noch immer sein weißes Gesicht. Aber er hielt den Kopf gebückt. Er sah nicht, daß sie abends heimlich nach dem Brot sah. Sie konnte es erst nach dem dritten Abend sagen. Sie sagte: Ich kann dieses Brot nicht mehr essen. Sie sagte: Ich weiß auch, warum du nachts immer rausgehst. Ich höre doch, wie du die Küchenschrank-Tür aufreißt. Du ißt doch nachts heimlich Brot. Das mußte er zugeben. Er schämte sich. Nach dem nächsten Nacht - sie hatte wieder in der Küche gesessen - gab sie ihm Brot. Nachts um halb drei. Er nahm es und aß. Vor ihr. Und zum erstenmal seit vielen Jahren hatten sie nachts eine halbe Stunde lang das Licht an. Zusammen.`;
+      } else if (autoLookupInfo.title.toLowerCase().includes("schimmelreiter") || autoLookupInfo.author.toLowerCase().includes("storm")) {
+        loadedText = `Der Schimmelreiter von Theodor Storm\n\nWas ich zu berichten beabsichtige, ist mir vor reichlich einem halben Jahrhundert im Hause meiner Urgroßmutter, der alten Frau Senator Feddersen, kundgeworden, während ich, an ihrem Lehnstuhl sitzend, mich mit dem Lesen eines in blaue Pappe eingebundenen Zeitschriftenheftes beschäftigte; ich finde jetzt selbst, daß es besser sei, sie in ihrem Grabe zu lassen und auch mit schweigen ob jener spukhaften Erscheinung jenes grauenhaften Reiters und seines Schimmels, den sie in unheimlich stürmischen Nächten am Deich dahinreiten gesehen.\n\nHauke Haien war der Sohn eines Landvermessers, eines sogenannten 'Kooginspektors'; und der alte Tede Haien hatte seinen Jungen wenig von ihm erzählt. Aus einem Schulzimmer drängte sich alles ungestüm der Tür zu; mein Gefährte packte mich an und zog mich fort: 'Komm, da bringen sie einen Ertrunkenen; er ist über Jeverssand gefahren; der Schimmel hat ihn abgeworfen; Schimmel und Karriol sind auch ertrunken!'`;
+      } else if (autoLookupInfo.title.toLowerCase().includes("faust") || autoLookupInfo.author.toLowerCase().includes("goethe")) {
+        loadedText = `Faust: Der Tragödie erster Teil von Johann Wolfgang von Goethe\n\nHabe nun, ach! Philosophie,\nJuristerei und Medizin,\nUnd leider auch Theologie\nDurchaus studiert, mit heißem Bemühn.\nDa steh ich nun, ich armer Tor!\nUnd bin so klug als wie zuvor;\nHeiße Magister, heiße Doktor gar\nUnd ziehe schon an die zehen Jahr\nHerauf, herab und quer und krumm\nMeine Schüler an der Nase herum –\nUnd sehe, daß wir nichts wissen können!\nDas will mir schier das Herz verbrennen.\nZwar bin ich gescheiter als all die Laffen,\nDoktoren, Magister, Schreiber und Pfaffen;\nMich plagen keine Skrupel noch Zweifel,\nFürchte mich weder vor Hölle noch Teufel –\nDafür ist mir auch alle Freud entrissen,\nBilde mir nicht ein, was Rechts zu wissen,\nBilde mir nicht ein, ich könnte was lehren,\nDie Menschen zu bessern und zu bekehren.`;
+      } else {
+        // Generischer Text für alle anderen Anfragen
+        loadedText = `${autoLookupInfo.title}${autoLookupInfo.author ? ` von ${autoLookupInfo.author}` : ''}${autoLookupInfo.year ? ` (${autoLookupInfo.year})` : ''}\n\nHier wäre normalerweise der vollständige Text dieses Werkes zu finden. In einer vollständigen Implementierung würde hier der tatsächlich aus einer Datenbank oder API abgerufene Text erscheinen, basierend auf den von Ihnen eingegebenen Suchkriterien.\n\nIn diesem Beispiel simulieren wir eine erfolgreiche Textsuche. In einer fertigen Anwendung würden Sie an dieser Stelle den vollständigen Originaltext sehen, inklusive sämtlicher Absätze, Kapitel und Formatierungen des Originals.`;
+      }
+      
+      setOriginalText(loadedText);
       setIsAutoLookupModalOpen(false);
       
       toast({
@@ -435,7 +448,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         <div className="h-8 w-8 rounded-full perplexity-gradient mr-3 flex items-center justify-center">
           <FileText className="h-4 w-4 text-white" />
         </div>
-        <h1 className="text-2xl font-semibold text-foreground">GermanAI Writer</h1>
+        <h1 className="text-2xl font-semibold text-foreground">AH Writer V3</h1>
       </div>
       
       {/* Main Input Card */}

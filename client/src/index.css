@@ -57,4 +57,54 @@
   .perplexity-container {
     @apply max-w-3xl mx-auto px-4 sm:px-6 py-12;
   }
+  
+  /* Smooth animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  .animate-scale {
+    animation: scale 0.3s ease-in-out;
+  }
+  
+  .animate-pulse-accent {
+    animation: pulseAccent 2s infinite;
+  }
+  
+  .transition-smooth {
+    transition: all 0.3s ease;
+  }
+  
+  .hover-scale {
+    transition: transform 0.2s ease;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes scale {
+    from { transform: scale(0.95); opacity: 0.8; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes pulseAccent {
+    0% { box-shadow: 0 0 0 0 rgba(0, 165, 186, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 165, 186, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 165, 186, 0); }
+  }
 }

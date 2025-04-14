@@ -55,6 +55,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   const [photoSource, setPhotoSource] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [isAutoLookupModalOpen, setIsAutoLookupModalOpen] = useState(false);
+  const [isSearchingText, setIsSearchingText] = useState(false);
   const [autoLookupInfo, setAutoLookupInfo] = useState({
     title: "",
     author: "",
@@ -303,6 +304,9 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
       return;
     }
 
+    // Setze den Ladeindikator
+    setIsSearchingText(true);
+
     // Zeige Lade-Toast an
     toast({
       title: "Text wird gesucht",
@@ -351,6 +355,9 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
         description: "Es gab ein Problem bei der Textsuche. Bitte versuche es später noch einmal.",
         variant: "destructive",
       });
+    } finally {
+      // Unabhängig vom Ergebnis den Ladeindikator zurücksetzen
+      setIsSearchingText(false);
     }
   };
 
@@ -445,9 +452,16 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
             <Button variant="outline" onClick={() => setIsAutoLookupModalOpen(false)}>
               Abbrechen
             </Button>
-            <Button className="bg-primary text-primary-foreground" onClick={handleAutoLookup}>
-              <Search className="h-4 w-4 mr-2" />
-              Suchen
+            <Button 
+              className="bg-primary text-primary-foreground" 
+              onClick={handleAutoLookup}
+              disabled={isSearchingText}
+            >
+              {isSearchingText ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Suche...</>
+              ) : (
+                <><Search className="h-4 w-4 mr-2" /> Suchen</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

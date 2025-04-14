@@ -160,11 +160,11 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
   // Handlers
   const handleUpload = () => {
     if (fileInputRef.current) {
-      // Auf mobilen Geräten die Kamera/Fotomediathek für die Dateiauswahl öffnen
+      // Auf mobilen Geräten direkte Fotomediathek für die Dateiauswahl öffnen
       if (isMobileDevice) {
-        // Auf mobilen Geräten "accept" auf "image/*" setzen, um Kamera/Fotogalerie zu öffnen
+        // Auf mobilen Geräten "accept" auf "image/*" setzen, um Fotogalerie zu öffnen
+        // WICHTIG: Kein "capture" Attribut setzen, damit die Mediathek und nicht direkt die Kamera geöffnet wird
         fileInputRef.current.setAttribute("accept", "image/*");
-        fileInputRef.current.setAttribute("capture", "environment"); // Optional: Direkt die Kamera öffnen
       } else {
         // Auf Desktop normale Dateiauswahl
         fileInputRef.current.setAttribute("accept", ".txt,.doc,.docx,.pdf");

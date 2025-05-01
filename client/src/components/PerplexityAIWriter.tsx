@@ -636,7 +636,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                       disabled={isUploading}
                     >
                       {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-                      Datei
+                      Foto
                     </Button>
                   ) : (
                     <Button 
@@ -647,7 +647,7 @@ export default function PerplexityAIWriter({ settings, setSettings }: Perplexity
                       disabled={isUploading}
                     >
                       {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                      Datei
+                      Foto
                     </Button>
                   )}
                   
